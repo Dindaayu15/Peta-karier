@@ -1,18 +1,22 @@
-document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("predictForm");
-    const predictButton = document.getElementById("predictButton");
+document.getElementById("predictionForm").addEventListener("submit", function(event) {
+    event.preventDefault();
 
-    form.addEventListener("input", function () {
-        const ipk = document.getElementById("ipk").value;
-        const pendapatan = document.getElementById("pendapatan_orangtua").value;
+    let formData = new FormData(this);
 
-        if (ipk && pendapatan) {
-            predictButton.disabled = false; // Aktifkan tombol jika input terisi
-        } else {
-            predictButton.disabled = true; // Nonaktifkan jika ada yang kosong
+    fetch("/predict", {
+        method: "POST",
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === "success") {
+            document.getElementById("prediksiJabatan").innerText = data.jabatan;
+            document.getElementById("hasilPrediksi").classList.remove("hidden");
         }
-    });
+    })
+    .catch(error => console.error("Error:", error));
 });
+
 
 
 // Load data mahasiswa untuk halaman Admin
