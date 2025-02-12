@@ -14,7 +14,7 @@ db = mysql.connector.connect(
 )
 cursor = db.cursor()
 
-with open('model.pkl', 'rb') as file:
+with open('model_karier.pkl', 'rb') as file:
     model = pickle.load(file)
 
 @app.route('/')
@@ -48,6 +48,15 @@ def admin_dashboard():
 def logout():
     session.pop('admin', None)
     return redirect(url_for('login'))
+
+@app.route('/riwayat')
+def riwayat():
+    if 'admin' not in session:
+        return redirect(url_for('login'))
+
+   cursor.execute("SELECT mahasiswa.nama, mahasiswa.nim, prediksi_karier.prediksi_jabatan, prediksi_karier.probabilitas FROM mahasiswa INNER JOIN prediksi_karier ON mahasiswa.id = prediksi_karier.mahasiswa_id")
+    history = cursor.fetchall()
+    return render_template('riwayat.html', history=history)
 
 @app.route('/predict', methods=['POST'])
 def predict():
