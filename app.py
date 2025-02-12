@@ -22,7 +22,10 @@ model = joblib.load("model_karier.pkl")
 # API Prediksi Karier
 @app.route('/prediksi', methods=['POST'])
 def prediksi():
-    data = request.json
+    data = request.get_json()
+    ipk = data.get('ipk')
+    pendapatan_orangtua = data.get('pendapatan_orangtua')
+    
     df = pd.DataFrame([data])
     prediksi = model.predict(df)[0]
     prob = model.predict_proba(df)[0].max()
