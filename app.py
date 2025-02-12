@@ -1,10 +1,15 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file
 import mysql.connector
 import pickle
 import numpy as np
 import pandas as pd
+import smtplib
+import matplotlib.pyplot as plt
+import io
+import csv
 
 app = Flask(__name__)
+app.secret_key = "secret123"
 
 # 🔌 Koneksi ke Database MySQL
 db = mysql.connector.connect(
@@ -19,14 +24,33 @@ cursor = db.cursor()
 with open("model/model.pkl", "rb") as file:
     model = pickle.load(file)
 
-# 🏠 Halaman Utama
+# 🏠 Halaman Login Admin
 @app.route('/')
-def index():
-    return render_template('index.html')
+def login():
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def do_login():
+    username = request.form['username']
+    password = request.form['password']
+    
+    if username == "admin" and password == "admin123":
+        session['admin'] = True
+        return redirect(url_for('admin'))
+    else:
+        return redirect(url_for('login'))
+
+@app.route('/logout')
+def logout():
+    session.pop('admin', None)
+    return redirect(url_for('login'))
 
 # 📜 Halaman Admin
 @app.route('/admin')
 def admin():
+    if 'admin' not in session:
+        return redirect(url_for('login'))
+
     cursor.execute("SELECT * FROM mahasiswa")
     mahasiswa = cursor.fetchall()
     
@@ -56,10 +80,11 @@ def delete_mahasiswa(id):
     db.commit()
     return redirect(url_for('admin'))
 
-# 🚀 Prediksi Karier Mahasiswa
+# 🚀 Prediksi Karier Mahasiswa + Kirim Email
 @app.route('/predict', methods=['POST'])
 def predict():
     mahasiswa_id = request.form['mahasiswa_id']
+    email = request.form['email']
     
     cursor.execute("SELECT ipk, pendapatan_orangtua FROM mahasiswa WHERE id = %s", (mahasiswa_id,))
     data = cursor.fetchone()
@@ -77,21 +102,78 @@ def predict():
                    (mahasiswa_id, prediksi_jabatan, probabilitas))
     db.commit()
 
+    # Kirim Email Hasil Prediksi
+    send_email(email, prediksi_jabatan, probabilitas)
+
     return redirect(url_for('riwayat'))
 
-# 📜 Halaman Riwayat Prediksi
-@app.route('/riwayat')
+# 📩 Fungsi Kirim Email
+def send_email(email, prediksi, prob):
+    sender_email = "youremail@gmail.com"
+    sender_password = "yourpassword"
+    subject = "Hasil Prediksi Karier Anda"
+    message = f"Halo,\n\nBerdasarkan analisis kami, prediksi karier Anda adalah: {prediksi}\nDengan probabilitas: {prob:.2f}\n\nTerima kasih."
+
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+    server.login(sender_email, sender_password)
+    server.sendmail(sender_email, email, f"Subject: {subject}\n\n{message}")
+    server.quit()
+
+# 📊 Grafik Data
+@app.route('/chart')
+def chart():
+    cursor.execute("SELECT ipk, pendapatan_orangtua FROM mahasiswa")
+    data = cursor.fetchall()
+    
+    df = pd.DataFrame(data, columns=['IPK', 'Pendapatan'])
+    plt.figure(figsize=(8, 4))
+    plt.scatter(df['IPK'], df['Pendapatan'], color='blue')
+    plt.xlabel("IPK")
+    plt.ylabel("Pendapatan Orang Tua")
+    plt.title("Hubungan IPK & Pendapatan Orang Tua")
+    
+    img = io.BytesIO()
+    plt.savefig(img, format="png")
+    img.seek(0)
+    
+    return send_file(img, mimetype="image/png")
+
+# 📥 Export Data ke CSV
+@app.route('/export')
+def export():
+    cursor.execute("SELECT m.nama, p.prediksi_jabatan, p.probabilitas FROM prediksi_karier p JOIN mahasiswa m ON p.mahasiswa_id = m.id")
+    data = cursor.fetchall()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Nama", "Prediksi Jabatan", "Probabilitas"])
+    writer.writerows(data)
+    
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype="text/csv", as_attachment=True, download_name="data_prediksi.csv")
+
+# 📜 Halaman Riwayat Prediksi + Filter
+@app.route('/riwayat', methods=['GET'])
 def riwayat():
-    cursor.execute("""
+    search = request.args.get('search', '')
+
+    query = """
         SELECT m.nama, p.prediksi_jabatan, p.probabilitas 
         FROM prediksi_karier p 
         JOIN mahasiswa m ON p.mahasiswa_id = m.id
-    """)
+    """
+    if search:
+        query += " WHERE m.nama LIKE %s"
+        cursor.execute(query, ('%' + search + '%',))
+    else:
+        cursor.execute(query)
+
     riwayat_prediksi = cursor.fetchall()
     
-    return render_template('riwayat.html', riwayat=riwayat_prediksi)
+    return render_template('riwayat.html', riwayat=riwayat_prediksi, search=search)
 
-# 🔄 Reset Database (Opsional)
+# 🔄 Reset Database
 @app.route('/reset')
 def reset():
     cursor.execute("DELETE FROM prediksi_karier")
