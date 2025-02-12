@@ -1,15 +1,19 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const path = window.location.pathname;
+    const form = document.getElementById("predictForm");
+    const predictButton = document.getElementById("predictButton");
 
-    if (path.includes("admin.html")) {
-        loadAdminTable();
-        setupSearchFilter();
-        renderCharts();
-    } else if (path.includes("riwayat.html")) {
-        loadRiwayatTable();
-        setupSearchFilter();
-    }
+    form.addEventListener("input", function () {
+        const ipk = document.getElementById("ipk").value;
+        const pendapatan = document.getElementById("pendapatan_orangtua").value;
+
+        if (ipk && pendapatan) {
+            predictButton.disabled = false; // Aktifkan tombol jika input terisi
+        } else {
+            predictButton.disabled = true; // Nonaktifkan jika ada yang kosong
+        }
+    });
 });
+
 
 // Load data mahasiswa untuk halaman Admin
 function loadAdminTable() {
