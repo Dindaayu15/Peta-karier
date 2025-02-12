@@ -1,4 +1,90 @@
-...
-<button onclick="getRiwayat()">Lihat Riwayat</button>
-<table id="riwayat-table"></table>
-<script src="script.js"></script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat Prediksi - Peta Karier</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 900px;
+            margin-top: 50px;
+        }
+        .card {
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="index.html"><i class="fas fa-graduation-cap"></i> Peta Karier</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin.html"><i class="fas fa-user-shield"></i> Admin Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html"><i class="fas fa-home"></i> Kembali ke Beranda</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Riwayat Prediksi -->
+    <div class="container">
+        <div class="card p-4">
+            <h3 class="text-center"><i class="fas fa-history"></i> Riwayat Prediksi</h3>
+            
+            <!-- Tabel Data Riwayat -->
+            <table class="table table-striped mt-3">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Nama</th>
+                        <th>IPK</th>
+                        <th>Pendapatan</th>
+                        <th>Prediksi</th>
+                    </tr>
+                </thead>
+                <tbody id="riwayatTable">
+                    <!-- Data akan dimuat di sini -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        fetch("http://127.0.0.1:5000/riwayat")
+            .then(response => response.json())
+            .then(data => {
+                let table = document.getElementById("riwayatTable");
+                data.forEach((row, index) => {
+                    let newRow = table.insertRow();
+                    newRow.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${row.nama}</td>
+                        <td>${row.ipk}</td>
+                        <td>${row.pendapatan_orangtua}</td>
+                        <td>${row.prediksi_jabatan}</td>
+                    `;
+                });
+            });
+    </script>
+
+</body>
+</html>
