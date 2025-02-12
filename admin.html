@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h2>Dashboard Admin</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>NIM</th>
+                <th>IPK</th>
+                <th>Pendapatan Orangtua</th>
+                <th>Jabatan</th>
+                <th>Probabilitas</th>
+            </tr>
+        </thead>
+        <tbody id="dashboard-table">
+        </tbody>
+    </table>
+
+    <h3>Statistik Prediksi</h3>
+    <canvas id="chart"></canvas>
+
+    <script>
+        async function loadDashboard() {
+            let response = await fetch("http://localhost:5000/dashboard");
+            let data = await response.json();
+
+            let tableBody = document.getElementById("dashboard-table");
+            tableBody.innerHTML = "";
+
+            let labels = [];
+            let probabilities = [];
+
+            data.forEach(row => {
+                let tr = `<tr>
+                    <td>${row.nama}</td>
+                    <td>${row.nim}</td>
+                    <td>${row.ipk}</td>
+                    <td>${row.pendapatan_orangtua}</td>
+                    <td>${row.jabatan}</td>
+                    <td>${(row.probabilitas * 100).toFixed(2)}%</td>
+                </tr>`;
+                tableBody.innerHTML += tr;
+
+                if (row.jabatan) {
+                    labels.push(row.jabatan);
+                    probabilities.push(row.probabilitas * 100);
+                }
+            });
+
+            new Chart(document.getElementById("chart"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Probabilitas Prediksi (%)",
+                        data: probabilities,
+                        backgroundColor: "blue"
+                    }]
+                }
+            });
+        }
+
+        window.onload = loadDashboard;
+    </script>
+</body>
+</html>
